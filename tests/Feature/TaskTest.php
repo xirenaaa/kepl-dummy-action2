@@ -21,6 +21,16 @@ class TaskTest extends TestCase
             ->assertJsonCount(2);
     }
 
+    public function test_can_get_tugas_endpoint(): void
+    {
+        Task::create(['title' => 'Tugas A', 'description' => 'Desc A']);
+
+        $response = $this->getJson('/api/tugas');
+
+        $response->assertStatus(200)
+            ->assertJsonFragment(['title' => 'Tugas A']);
+    }
+
     public function test_can_create_task(): void
     {
         $payload = [

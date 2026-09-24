@@ -1,0 +1,128 @@
+name: Frontend CI/CD Pipeline
+
+on:
+  push:
+    branches:
+      - '**'
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  # ==========================================
+  # 1. TAHAP LINT
+  # ==========================================
+  lint:
+    name: 1. Lint
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+          cache-dependency-path: 'frontend/package-lock.json'
+
+      - name: Install Dependencies
+        working-directory: ./frontend
+        run: npm ci
+
+      - name: Run ESLint
+        working-directory: ./frontend
+        run: npm run lint
+
+  # ==========================================
+  # 2. TAHAP TEST (VITEST)
+  # ==========================================
+  test:
+    name: 2. Test
+    needs: lint
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+          cache-dependency-path: 'frontend/package-lock.json'
+
+      - name: Install Dependencies
+        working-directory: ./frontend
+        run: npm ci
+
+      - name: Run Vitest Unit Tests (Isolated from Backend)
+        working-directory: ./frontend
+        run: npm run test
+
+  # ==========================================
+  # 3. TAHAP BUILD
+  # ==========================================
+  build:
+    name: 3. Build
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+          cache-dependency-path: 'frontend/package-lock.json'
+
+      - name: Install Dependencies
+        working-directory: ./frontend
+        run: npm ci
+
+      - name: Build Frontend Application
+        working-directory: ./frontend
+        run: npm run build
+
+      - name: Upload Build Artifact (dist/)
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-dist
+          path: frontend/dist
+          retention-days: 1
+
+  # ==========================================
+  # 4. TAHAP DEPLOY
+  # ==========================================
+  deploy:
+    name: 4. Deploy
+    needs: build
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download Build Artifact (dist/)
+        uses: actions/download-artifact@v4
+        with:
+          name: frontend-dist
+          path: frontend/dist
+
+      - name: Display dist/ Contents to Log
+        run: |
+          echo "=================================================="
+          echo " [DEPLOY STAGE] Menerima Artifak Hasil Build "
+          echo " (Tanpa menjalankan ulang 'npm run build') "
+          echo "=================================================="
+          echo "--> Isi direktori dist/:"
+          ls -la frontend/dist
+          echo ""
+          echo "--> Isi direktori dist/assets/:"
+          ls -la frontend/dist/assets || true
+          echo "=================================================="
+
+      - name: Execute Deployment Simulation (Echo)
+        run: |
+          echo "--> Memulai proses deploy ke static web server..."
+          echo "--> Menyalin file bundle statis ke target hosting..."
+          echo "--> [SUCCESS] Frontend Vue 3 berhasil dideploy ke environment Production!"
