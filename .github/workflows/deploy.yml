@@ -22,7 +22,7 @@ jobs:
       - name: Setup PHP Environment
         uses: shivammathur/setup-php@v2
         with:
-          php-version: '8.3'
+          php-version: '8.4'
           extensions: mbstring, xml, ctype, iconv, sqlite, pdo_sqlite
           coverage: none
 
@@ -33,6 +33,9 @@ jobs:
           key: ${{ runner.os }}-composer-${{ hashFiles('**/composer.lock') }}
           restore-keys: |
             ${{ runner.os }}-composer-
+
+      - name: Prepare Environment File
+        run: cp .env.example .env
 
       - name: Install Dependencies
         run: composer install --no-interaction --prefer-dist --optimize-autoloader
@@ -51,16 +54,22 @@ jobs:
       - name: Setup PHP Environment
         uses: shivammathur/setup-php@v2
         with:
-          php-version: '8.3'
+          php-version: '8.4'
           extensions: mbstring, xml, ctype, iconv, sqlite, pdo_sqlite
           coverage: none
 
-      - name: Install Dependencies
-        run: composer install --no-interaction --prefer-dist
+      - name: Cache Composer Dependencies
+        uses: actions/cache@v4
+        with:
+          path: vendor
+          key: ${{ runner.os }}-composer-${{ hashFiles('**/composer.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-composer-
 
       - name: Prepare Application Environment
         run: |
           cp .env.example .env
+          composer install --no-interaction --prefer-dist
           php artisan key:generate
 
       - name: Run Automated Feature & Unit Tests
